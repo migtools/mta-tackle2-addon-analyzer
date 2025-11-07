@@ -22,3 +22,11 @@ COPY --from=builder /workspace/LICENSE /licenses/
 WORKDIR /addon
 
 ENTRYPOINT ["/usr/bin/addon"]
+
+LABEL \
+        description="Migration Toolkit for Applications - Analyzer Addon" \
+        io.k8s.description="Migration Toolkit for Applications - Analyzer Addon" \
+        io.k8s.display-name="MTA - Analyzer Addon" \
+        io.openshift.maintainer.project="MTA" \
+        io.openshift.tags="migration,modernization,mta,tackle,konveyor" \
+        summary="Migration Toolkit for Applications - Analyzer Addon"
