@@ -7,7 +7,7 @@ ENV GOEXPERIMENT strictfipsruntime
 RUN go fmt ./... && go vet ./cmd/... ./builder/... && CGO_ENABLED=1 go build -tags strictfipsruntime -ldflags="-w -s" -o bin/addon github.com/konveyor/tackle2-addon-analyzer/cmd
 
 FROM brew.registry.redhat.io/rh-osbs/mta-mta-analyzer-lsp-rhel9:8.0.0
-RUN microdnf -y install glibc-langpack-en openssh-clients openssl subversion git tar && microdnf -y clean all
+RUN dnf -y install glibc-langpack-en openssh-clients openssl subversion git tar && dnf -y clean all
 
 RUN sed -i 's/^LANG=.*/LANG="en_US.utf8"/' /etc/locale.conf
 ENV LANG=en_US.utf8
