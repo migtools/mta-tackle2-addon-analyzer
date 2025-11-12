@@ -4,6 +4,7 @@ COPY --chown=1001:0 . /workspace
 WORKDIR /workspace
 # Avoid using Makefile as it performs GOIMPORTS and fails downstream
 ENV GOEXPERIMENT strictfipsruntime
+ENV GOFLAGS=-buildvcs=false
 RUN go fmt ./... && go vet ./cmd/... ./builder/... && CGO_ENABLED=1 go build -tags strictfipsruntime -ldflags="-w -s" -o bin/addon github.com/konveyor/tackle2-addon-analyzer/cmd
 
 FROM brew.registry.redhat.io/rh-osbs/mta-mta-analyzer-lsp-rhel9:8.0.0
