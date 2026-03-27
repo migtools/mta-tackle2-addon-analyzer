@@ -5,8 +5,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/konveyor/analyzer-lsp/core"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"github.com/konveyor/tackle2-hub/shared/addon/command"
 	"github.com/konveyor/tackle2-hub/shared/addon/scm"
 	"github.com/konveyor/tackle2-hub/shared/api"
 )
@@ -48,11 +48,13 @@ func (r *Mode) Build(application *api.Application) (err error) {
 }
 
 // AddOptions adds analyzer options.
-func (r *Mode) AddOptions(options *command.Options, settings *Settings) (err error) {
+func (r *Mode) ToOption() (option core.AnalyzerOption) {
 	if r.WithDeps {
-		settings.Mode(provider.FullAnalysisMode)
+		addon.Activity("[ANAYLZER] using full analysis mode")
+		option = core.WithAnalysisMode(string(provider.FullAnalysisMode))
 	} else {
-		settings.Mode(provider.SourceOnlyAnalysisMode)
+		addon.Activity("[ANAYLZER] using source analysis mode")
+		option = core.WithAnalysisMode(string(provider.SourceOnlyAnalysisMode))
 	}
 	return
 }
@@ -74,7 +76,9 @@ func (r *Mode) fetchRepository(application *api.Application) (err error) {
 		return
 	}
 	identity, _, err :=
-		addon.Application.Select(application.ID).Identity.Search().
+		addon.Application.Select(application.ID).Identity.
+			Decrypted().
+			Search().
 			Direct("source").
 			Indirect("source").
 			Find()

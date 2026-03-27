@@ -11,9 +11,10 @@ import (
 	"strconv"
 	"strings"
 
+	liberr "github.com/jortel/go-utils/error"
+	"github.com/konveyor/analyzer-lsp/core"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/parser"
-	"github.com/konveyor/tackle2-hub/shared/addon/command"
 	"github.com/konveyor/tackle2-hub/shared/addon/scm"
 	"github.com/konveyor/tackle2-hub/shared/api"
 	"github.com/konveyor/tackle2-hub/shared/nas"
@@ -102,13 +103,13 @@ func (r *Rules) Build() (err error) {
 }
 
 // AddOptions adds analyzer options.
-func (r *Rules) AddOptions(options *command.Options) (err error) {
-	for _, path := range r.rules {
-		options.Add("--rules", path)
-	}
-	err = r.addSelector(options)
-	if err != nil {
-		return
+func (r *Rules) ToOptions() (options []core.AnalyzerOption) {
+
+	options = append(options, core.WithRuleFilepaths(r.rules))
+
+	if selector := r.getSelector(); selector != "" {
+		addon.Activity("[ANALYZER] using label selector: %s", selector)
+		options = append(options, core.WithLabelSelector(selector))
 	}
 	return
 }
@@ -273,7 +274,7 @@ func (r *Rules) addRuleSetRepository(ruleset *api.RuleSet) (err error) {
 	}
 	var identity *api.Identity
 	if ruleset.Identity != nil {
-		identity, err = addon.Identity.Get(ruleset.Identity.ID)
+		identity, err = addon.Identity.Decrypted().Get(ruleset.Identity.ID)
 		if err != nil {
 			return
 		}
@@ -309,7 +310,7 @@ func (r *Rules) addRepository() (err error) {
 	}
 	var identity *api.Identity
 	if r.Identity != nil {
-		identity, err = addon.Identity.Get(r.Identity.ID)
+		identity, err = addon.Identity.Decrypted().Get(r.Identity.ID)
 		if err != nil {
 			return
 		}
@@ -332,15 +333,12 @@ func (r *Rules) addRepository() (err error) {
 }
 
 // addSelector adds label selector.
-func (r *Rules) addSelector(options *command.Options) (err error) {
+func (r *Rules) getSelector() (selector string) {
 	ruleSelector := RuleSelector{
 		Included: r.Labels.Included,
 		Excluded: r.Labels.Excluded,
 	}
-	selector := ruleSelector.String()
-	if selector != "" {
-		options.Add("--label-selector", selector)
-	}
+	selector = ruleSelector.String()
 	return
 }
 
@@ -400,10 +398,15 @@ func (r *Labels) RuleSets() (matched []api.RuleSet, err error) {
 	return
 }
 
-// selectedRuleSets returns rulesets that matches the included labels.
+// selectedRuleSets returns rulesets that match the included labels.
 func (r *Labels) selectedRuleSets(allRuleSets []api.RuleSet) (sets []api.RuleSet, err error) {
-	selector, err := labels.NewLabelSelector[*ruleSetLabels](strings.Join(r.Included, " || "), nil)
+	if len(r.Included) == 0 {
+		return
+	}
+	expression := strings.Join(r.Included, " || ")
+	selector, err := labels.NewLabelSelector[*ruleSetLabels](expression, nil)
 	if err != nil {
+		err = liberr.Wrap(err)
 		return
 	}
 	for _, ruleSet := range allRuleSets {
